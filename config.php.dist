@@ -1,0 +1,10 @@
+<?php return [
+    's3' => [
+        'credentials' => [
+            'key' => '',
+            'secret' => '',
+        ],
+        'region' => ''
+    ],
+    'slack' => ''
+];
