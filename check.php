@@ -6,10 +6,8 @@ use Frlnc\Slack\Core\Commander;
 use Frlnc\Slack\Http\CurlInteractor;
 use Frlnc\Slack\Http\SlackResponseFactory;
 
-use Aws\S3\S3Client;
-
 use League\Flysystem\Filesystem;
-use League\Flysystem\AwsS3v2\AwsS3Adapter;
+use League\Flysystem\Adapter\Ftp;
 
 require 'vendor/autoload.php';
 require 'Assert.php';
@@ -26,20 +24,18 @@ function report($message)
     $commander->execute(
         'chat.postMessage',
         [
-            'username' => 'PC Roel',
+            'username' => 'Backup validator',
             'icon_emoji' => ':x:',
-            'channel' => '#fake',
+            'channel' => '#server',
             'text' => $message
         ]
     );
 }
 
-$client = S3Client::factory($config['s3']);
-$adapter = new AwsS3Adapter($client, 'jouwweb-mysql-backups');
-$filesystem = new Filesystem($adapter);
+$filesystem = new Filesystem(new Ftp($config['ftp']));
 
 $assert = new Assert($filesystem);
 $result = $assert->assertBackups(new \DateTime);
 if ($result !== true) {
-    report($result);
+    report('Waarschuwing: ' . $result);
 }

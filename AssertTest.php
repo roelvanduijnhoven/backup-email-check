@@ -28,8 +28,8 @@ class AssertTest extends \PHPUnit_Framework_TestCase
 
     public function testValidBackups()
     {
-        $this->fs->getMetadata('server77-20150430.tgz')->willReturn($this->getMeta(123123123123));
-        $this->fs->getMetadata('server77-20150501.tgz')->willReturn($this->getMeta(123123123923));
+        $this->fs->getSize('s77_mail_2015-04-30.tar.gz')->willReturn($this->getMeta(123123123123));
+        $this->fs->getSize('s77_mail_2015-05-01.tar.gz')->willReturn($this->getMeta(123123123923));
 
         $result = $this->assert->assertBackups(new \DateTime('2015-05-01'));
 
@@ -38,59 +38,46 @@ class AssertTest extends \PHPUnit_Framework_TestCase
 
     public function testBackupTodayMissing()
     {
-        $this->fs->getMetadata('server77-20150422.tgz')->willThrow(new FileNotFoundException('server77-20150422.tgz'));
+        $this->fs->getSize('s77_mail_2015-04-22.tar.gz')->willThrow(new FileNotFoundException('s77_mail_20150422.tar.gz'));
 
         $result = $this->assert->assertBackups(new \DateTime('2015-04-22'));
 
-        $this->assertEquals("Could not find database export 'server77-20150422.tgz'", $result);
-    }
-
-    public function testInvalidFileType()
-    {
-        $this->fs->getMetadata('server77-20150422.tgz')->willReturn($this->getMeta(323123123123));
-        $this->fs->getMetadata('server77-20150423.tgz')->willReturn($this->getMeta(123123123123, 'text/plain'));
-
-        $result = $this->assert->assertBackups(new \DateTime('2015-04-23'));
-
-        $this->assertEquals("Database file type for 'server77-20150423.tgz' is not application/x-gzip", $result);
+        $this->assertEquals("Kon email backup niet vinden: 's77_mail_2015-04-22.tar.gz'", $result);
     }
 
     public function testTooSmall()
     {
-        $this->fs->getMetadata('server77-20150422.tgz')->willReturn($this->getMeta(123));
-        $this->fs->getMetadata('server77-20150423.tgz')->willReturn($this->getMeta(345));
+        $this->fs->getSize('s77_mail_2015-04-22.tar.gz')->willReturn($this->getMeta(123));
+        $this->fs->getSize('s77_mail_2015-04-23.tar.gz')->willReturn($this->getMeta(345));
 
         $result = $this->assert->assertBackups(new \DateTime('2015-04-23'));
 
-        $this->assertEquals("Database export 'server77-20150423.tgz' is only 345 in size", $result);
+        $this->assertEquals("Email backup lijkt te klein (0.000345 MB)", $result);
     }
 
-    public function testCouldNotReadMeta()
+    public function testCouldNotReadFileSize()
     {
-        $this->fs->getMetadata('server77-20150422.tgz')->willReturn(false);
-        $this->fs->getMetadata('server77-20150423.tgz')->willReturn($this->getMeta(123123123123));
+        $this->fs->getSize('s77_mail_2015-04-22.tar.gz')->willReturn(false);
+        $this->fs->getSize('s77_mail_2015-04-23.tar.gz')->willReturn($this->getMeta(123123123123));
 
         $result = $this->assert->assertBackups(new \DateTime('2015-04-23'));
 
-        $this->assertEquals("Could not obtain meta-data from database export 'server77-20150422.tgz'", $result);
+        $this->assertEquals("Kan bestandsgrootte niet ophalen van 's77_mail_2015-04-22.tar.gz'", $result);
     }
 
     public function testLastBackupsIdentical()
     {
         $meta = $this->getMeta(123123123123);
-        $this->fs->getMetadata('server77-20150422.tgz')->willReturn($meta);
-        $this->fs->getMetadata('server77-20150421.tgz')->willReturn($meta);
+        $this->fs->getSize('s77_mail_2015-04-22.tar.gz')->willReturn($meta);
+        $this->fs->getSize('s77_mail_2015-04-21.tar.gz')->willReturn($meta);
 
         $result = $this->assert->assertBackups(new \DateTime('2015-04-22'));
 
-        $this->assertEquals("Last two database are equal in size", $result);
+        $this->assertEquals("Laatste twee e-mail backups zijn even groot.", $result);
     }
 
     protected function getMeta($size, $mimetype = 'application/x-gzip')
     {
-        return $meta = [
-            'size' => $size,
-            'mimetype' => $mimetype
-        ];
+        return $size;
     }
 }

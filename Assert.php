@@ -3,6 +3,7 @@
 namespace root;
 
 use League\Flysystem\FilesystemInterface;
+use League\Flysystem\Plugin\ListWith;
 
 class Assert
 {
@@ -17,6 +18,7 @@ class Assert
     function __construct(FilesystemInterface $filesystem)
     {
         $this->filesystem = $filesystem;
+        $this->filesystem->addPlugin(new ListWith);
     }
 
     /**
@@ -29,31 +31,28 @@ class Assert
         $day = $today;
         $sizes = [];
         for ($i = 0; $i < 2; $i++) {
-            $expected = 'server77-' . $day->format('Ymd') . '.tgz';
+            $expected = 's77_mail_' . $day->format('Y-m-d') . '.tar.gz';
 
             try {
-                $info = $this->filesystem->getMetadata($expected);
-                if ($info === false) {
-                    return "Could not obtain meta-data from database export '{$expected}'";
+                $size = $this->filesystem->getSize($expected);
+                if ($size === false) {
+                  return "Kan bestandsgrootte niet ophalen van '{$expected}'";
                 }
 
-                $sizes[] = $info['size'];
-                if ($info['size'] < 2547421976) {
-                    return "Database export '{$expected}' is only {$info['size']} in size";
-                }
-
-                if ($info['mimetype'] !== 'application/x-gzip') {
-                    return "Database file type for '{$expected}' is not application/x-gzip";
+                $sizes[] = $size;
+                if ($size < 3.4 * 1000 * 1000 * 1000) {
+                    $humanSize = $size / 1000 / 1000;
+                    return "Email backup lijkt te klein ({$humanSize} MB)";
                 }
             } catch (\League\Flysystem\FileNotFoundException $e) {
-                return "Could not find database export '{$expected}'";
+                return "Kon email backup niet vinden: '{$expected}'";
             }
 
             $day = $day->sub(new \DateInterval('P1D'));
         }
 
         if (count(array_unique($sizes)) === 1) {
-            return "Last two database are equal in size";
+            return "Laatste twee e-mail backups zijn even groot.";
         }
 
         return true;
